@@ -3,7 +3,7 @@
 ## Course Project
 ## Winter 2018
 
-Jonathan Smith 
-MEng Candidate 
-Mechanical and Industrial Engineering 
-University of Toronto 
+Jonathan Smith  
+MEng Candidate  
+Mechanical and Industrial Engineering  
+University of Toronto  
