@@ -36,13 +36,11 @@ class AmericanOption(object):
         self.mu = float(mu)
         self.sigma = float(sigma)
         self.paths = paths
+        self.exercise = float(exercise['exercise']['exercise'])
         try:
-            self.ex_step = int(math.floor(self.steps * exercise/T))
+            self.ex_step = int(math.floor(self.steps * self.exercise/self.T))
         except:
             self.ex_step = int(self.steps)
-        # self.steps = steps
-        # self.reps = reps
-        # self.interval = float(T/steps)
         if (contract != 'call') & (contract != 'put'):
             raise ValueError('Invalid Contract Type. Specify <call> or <put>')
         self.value = self.Sim_value()
@@ -51,7 +49,6 @@ class AmericanOption(object):
         '''
         Return European option value using Brownian Random Walk Monte-Carlo simulation
         '''
-        # prices = pd.DataFrame(gbm.BRW(drift=self.mu,sigma=self.sigma,S0=self.S0,T=self.T,paths=self.reps,steps=self.steps))
         self.paths = pd.DataFrame(self.paths)
         if self.contract =='call':
             payout = self.paths - self.K
@@ -103,11 +100,9 @@ class AmericanOption(object):
                 if p1>payout_2[pos]:
                     payout_2[pos] = np.exp(-self.r)*payout_1.iloc[pos]
         
-        values = payout_rev.iloc[:,-1]
-        value, CI_95 = conf.CI(values)
-        
-        # store values at exercise
-        
+        end_values = payout_rev.iloc[:,-1]
+        value, CI_95 = conf.CI(end_values)
+                
         # print (type(self.values))
         # print (self.values)
 
