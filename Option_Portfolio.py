@@ -245,8 +245,9 @@ class OptionPortfolio(object):
         Return net value of the alternative portfolio (ie with perturbed stock)
         and the estimated derivative of effect expected net portfolio with respect to perturbed stock
         '''
-        portfolio = self.net_value()[1]
-        
+        portfolio = np.sort(self.net_value()[0])
+        # portfolio = self.net_value()[1]
+
         # Calculate sensitivity stock returns
         self.stock_value_delta = 0
         for i,j in self.stocks.items():
@@ -257,12 +258,14 @@ class OptionPortfolio(object):
         self.put_value_delta = self.put_payoff_delta
         self.call_value_delta = self.call_payoff_delta
         self.net_delta = self.stock_value_delta + self.put_value_delta + self.call_value_delta - self.cost_delta
+
         self.port_ave_delta, self.port_ci_delta = CI(self.net_delta)
         
         # Calculate finite difference
-        FD = (self.port_ave_delta - portfolio)/self.delta
-        
-        return  self.net_delta, self.port_ave_delta, self.port_ci_delta, FD
+        FD = (np.sort(self.net_delta) - portfolio)/self.delta
+        # FD = (self.port_ave_delta - portfolio)/self.delta
+        FD_ave,FD_CI = CI(FD)
+        return  self.net_delta, self.port_ave_delta, self.port_ci_delta, FD, FD_ave, FD_CI
         
     def stock_plot(self,stock, cumulative=False):
         '''
@@ -275,7 +278,7 @@ class OptionPortfolio(object):
         y = y[0]
         
         sns.set(rc={'figure.figsize':(14,8)})
-        sns.set(font_scale=2)
+        sns.set(font_scale=1.5)
         
         if cumulative:
             fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, sharey=True, sharex=False)
@@ -308,7 +311,7 @@ class OptionPortfolio(object):
         y = self.net_value()
         y = y[0]
         sns.set(rc={'figure.figsize':(14,8)})
-        sns.set(font_scale=2)
+        sns.set(font_scale=1.5)
         ax = sns.distplot(y, vertical=False, bins=20, kde=False, norm_hist=False)
         ax.xaxis.set_label_text('Net Portfolio Value at Maturity')
         ax.yaxis.set_label_text('Occurance Count')
@@ -325,3 +328,26 @@ class OptionPortfolio(object):
         ax.xaxis.set_label_text('Net Portfolio Value at Maturity After Return Perterbation')
         ax.yaxis.set_label_text('Occurance Count')
         ax.set_title('Histogram of Altered Portfolio Returns')
+
+    def stock_plot_reg(self,stock):
+        '''
+        Plot portfolio payoff vs stock price at maturity
+        Also plot vertical histogram of outcomes
+        If cumulative=True cumulative return distribution is plotted as well
+        '''
+        x = self.stocks[stock]['paths'][:,-1]
+        y = self.net_value()
+        y = y[0]
+        
+        sns.set(rc={'figure.figsize':(14,8)})
+        sns.set(font_scale=1.5)
+
+        fig, (ax1, ax2) = plt.subplots(ncols=2, sharey=True, sharex=False)
+        sns.regplot(x,y, order=4, ci=None, truncate=True , ax=ax1)
+        sns.distplot(y, vertical=True, bins=20, kde=False, norm_hist=False, ax=ax2)
+        
+        ax1.xaxis.set_label_text('Stock Price at Maturity')
+        ax1.yaxis.set_label_text('Portfolio Profit')
+        ax1.set_title('Profit Vs. Stock Price')
+        ax2.xaxis.set_label_text('Probability')
+        ax2.set_title('Probability of Profit')
