@@ -47,7 +47,7 @@ class AmericanOption(object):
 
     def Sim_value(self):
         '''
-        Return European option value using Brownian Random Walk Monte-Carlo simulation
+        Return American option value using Brownian Random Walk Monte-Carlo simulation
         '''
         self.paths = pd.DataFrame(self.paths)
         if self.contract =='call':
@@ -57,7 +57,7 @@ class AmericanOption(object):
 
         # store values at exercise
         self.values = np.exp(-self.r * self.ex_step) * np.maximum(0,payout.iloc[:,self.ex_step])
-        
+
         # Set negative payoffs to 0, reverse order of dataframes along time axis
         payout[payout < 0] = 0
         paths_rev = self.paths.iloc[:, ::-1]
@@ -103,7 +103,4 @@ class AmericanOption(object):
         end_values = payout_rev.iloc[:,-1]
         value, CI_95 = conf.CI(end_values)
                 
-        # print (type(self.values))
-        # print (self.values)
-
         return value, CI_95

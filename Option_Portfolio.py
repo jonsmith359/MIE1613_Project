@@ -33,6 +33,7 @@ class OptionPortfolio(object):
     self.call_payoff - payoff of all call options in each scenario
     self.cost - cost of all products in the portfolio
     self.products - Dataframe storing all products in portfolio
+
     '''
     def __init__(self, stocks, r, T, reps, steps, sensitivity=False, **delta):
         self.stocks = stocks
@@ -42,6 +43,7 @@ class OptionPortfolio(object):
         self.call_payoff = np.zeros(reps)
         self.cost = 0
         self.products = pd.DataFrame(columns=['stock','current price','product','type','strike','cost','count','total cost',])
+        
         # Generate sample paths for each stock
         for i,j in stocks.items():
             self.stocks[i]['paths'] = gbm.BRW(stocks[i]['mu'],stocks[i]['sigma'],stocks[i]['S0'],T,reps,steps)
@@ -49,12 +51,15 @@ class OptionPortfolio(object):
         
         # Create parameters for sensitivity analysis portfolio
         self.sensitivity = sensitivity
+        # If sensitivity analysis is specified, create alternate portfolio attributes ending in _delta
+        # Generate alternative paths according to alternate expected return
         try:
             self.delta = delta['delta']
             self.stock_delta = delta['stock']
         except:
             self.delta = 0
             self.stock_delta = 0
+
         if self.sensitivity==True:
             self.put_payoff_delta = np.zeros(reps)
             self.call_payoff_delta = np.zeros(reps)
@@ -63,7 +68,11 @@ class OptionPortfolio(object):
             self.stocks[self.stock_delta]['paths_delta'] = gbm.BRW((1.+self.delta)*stocks[self.stock_delta]['mu'],stocks[self.stock_delta]['sigma'],stocks[self.stock_delta]['S0'],T,reps,steps)
             
     def add_stock(self,stock,num,sense='long'):
-        
+        '''
+        Add specified stock to portfolio
+        and update all portfolio parameters
+        '''
+
         # Select stock parameters
         S0 = self.stocks[stock]['S0']
         
@@ -89,6 +98,11 @@ class OptionPortfolio(object):
                 self.products_delta = self.products_delta.append({'stock':stock,'current price':S0,'product':'stock','type':sense,'strike':'-','cost':-S0,'count':num,'total cost':-num*S0}, ignore_index=True)
     
     def add_put(self,stock,num,K,sense='buy',op_type='european',**exercise):
+        '''
+        Add specified put option to portfolio
+        and update all portfolio parameters
+        '''
+
         # Select stock parameters
         S0 = self.stocks[stock]['S0']
         mu = self.stocks[stock]['mu']
@@ -96,7 +110,6 @@ class OptionPortfolio(object):
         paths = self.stocks[stock]['paths']
         
         # Generate price of option
-        
         if op_type == 'european':
             put = EuropeanOption(contract='put',S0=S0,K=K,T=self.T,r=self.r,mu=mu,sigma=sigma,paths=paths)
         elif op_type == 'asian':
@@ -105,7 +118,6 @@ class OptionPortfolio(object):
             put = AmericanOption(contract='put',S0=S0,K=K,T=self.T,r=self.r,mu=mu,sigma=sigma,paths=paths,exercise=exercise)
         
         # Update portfolio parameters
-        
         if sense=='buy':
             self.cost += num*put.value[0]
             self.put_payoff = self.put_payoff + np.multiply(num,put.values)
@@ -117,7 +129,6 @@ class OptionPortfolio(object):
             self.products = self.products.append({'stock':stock,'current price':S0,'product':op_type+' put option','type':sense,'strike':K,'cost':-put.value[0],'count':num,'total cost':-num*put.value[0]}, ignore_index=True)
         
         # Generate sensitivity analysis portfolio
-        
         if (self.sensitivity==True) & (stock==self.stock_delta) :
             # if option is on sensitivity stock, new option prices must be generated
             paths = self.stocks[stock]['paths_delta']
@@ -151,6 +162,11 @@ class OptionPortfolio(object):
                 self.products_delta = self.products_delta.append({'stock':stock,'current price':S0,'product':op_type+' put option','type':sense,'strike':K,'cost':-put.value[0],'count':num,'total cost':-num*put.value[0]}, ignore_index=True)
             
     def add_call(self,stock,num,K,sense='buy',op_type='european',**exercise):
+        '''
+        Add specified call option to portfolio
+        and update all portfolio parameters
+        '''
+
         # Select stock parameters
         S0 = self.stocks[stock]['S0']
         mu = self.stocks[stock]['mu']
@@ -158,7 +174,6 @@ class OptionPortfolio(object):
         paths = self.stocks[stock]['paths']
         
         # Generate price of option
-        
         if op_type == 'european':
             call = EuropeanOption(contract='call',S0=S0,K=K,T=self.T,r=self.r,mu=mu,sigma=sigma,paths=paths)
         elif op_type == 'asian':
@@ -167,7 +182,6 @@ class OptionPortfolio(object):
             call = AmericanOption(contract='call',S0=S0,K=K,T=self.T,r=self.r,mu=mu,sigma=sigma,paths=paths,exercise=exercise)
         
         # Update portfolio parameters
-        
         if sense=='buy':
             self.cost += num*call.value[0]
             self.call_payoff = self.call_payoff + np.multiply(num,call.values)
@@ -179,7 +193,6 @@ class OptionPortfolio(object):
             self.products = self.products.append({'stock':stock,'current price':S0,'product':op_type+' call option','type':sense,'strike':K,'cost':-call.value[0],'count':num,'total cost':-num*call.value[0]}, ignore_index=True)
         
         # Generate sensitivity analysis portfolio
-        
         if (self.sensitivity==True) & (stock==self.stock_delta) :
             # if option is on sensitivity stock, new option prices must be generated
             paths = self.stocks[stock]['paths_delta']
@@ -214,6 +227,9 @@ class OptionPortfolio(object):
                 self.products_delta = self.products_delta.append({'stock':stock,'current price':S0,'product':op_type+' call option','type':sense,'strike':K,'cost':-call.value[0],'count':num,'total cost':-num*call.value[0]}, ignore_index=True)
 
     def net_value(self):
+        '''
+        Return net value of the portfolio
+        '''
         self.stock_value = 0
         for i,j in self.stocks.items():
             self.stock_value += np.exp(-self.r*self.T)*self.stocks[i]['paths'][:,-1]*self.stocks[i]['count']
@@ -221,9 +237,14 @@ class OptionPortfolio(object):
         self.call_value = self.call_payoff
         self.net = self.stock_value + self.put_value + self.call_value - self.cost
         self.port_ave, self.port_ci = CI(self.net)
+
         return self.net, self.port_ave, self.port_ci
     
     def sensitivity_analysis(self):
+        '''
+        Return net value of the alternative portfolio (ie with perturbed stock)
+        and the estimated derivative of effect expected net portfolio with respect to perturbed stock
+        '''
         portfolio = self.net_value()[1]
         
         # Calculate sensitivity stock returns
@@ -238,12 +259,17 @@ class OptionPortfolio(object):
         self.net_delta = self.stock_value_delta + self.put_value_delta + self.call_value_delta - self.cost_delta
         self.port_ave_delta, self.port_ci_delta = CI(self.net_delta)
         
+        # Calculate finite difference
         FD = (self.port_ave_delta - portfolio)/self.delta
         
-        return portfolio, self.port_ave_delta, FD, self.net_delta
+        return  self.net_delta, self.port_ave_delta, self.port_ci_delta, FD
         
-    
     def stock_plot(self,stock, cumulative=False):
+        '''
+        Plot portfolio payoff vs stock price at maturity
+        Also plot vertical histogram of outcomes
+        If cumulative=True cumulative return distribution is plotted as well
+        '''
         x = self.stocks[stock]['paths'][:,-1]
         y = self.net_value()
         y = y[0]
@@ -274,7 +300,11 @@ class OptionPortfolio(object):
             ax1.set_title('Profit Vs. Stock Price')
             ax2.xaxis.set_label_text('Probability')
             ax2.set_title('Probability of Profit')
+    
     def hist_plot(self):
+        '''
+        Plot histogram of primary portfolio
+        '''
         y = self.net_value()
         y = y[0]
         sns.set(rc={'figure.figsize':(14,8)})
@@ -285,7 +315,10 @@ class OptionPortfolio(object):
         ax.set_title('Histogram of Portfolio Returns')
         
     def sensitivity_hist_plot(self):
-        y = self.sensitivity_analysis()[3]
+        '''
+        Plot histogram of perturbed portfolio
+        '''
+        y = self.sensitivity_analysis()[0]
         sns.set(rc={'figure.figsize':(14,8)})
         sns.set(font_scale=2)
         ax = sns.distplot(y, vertical=False, bins=20, kde=False, norm_hist=False)

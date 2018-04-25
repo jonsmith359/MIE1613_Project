@@ -1,8 +1,12 @@
 #Confidence Interval Function
+
 import numpy as np
 import scipy.stats as stats
 from math import sqrt
 def CI(data, confidence=0.95):
+    '''
+    Returns the mean of a data set as well as the confidence band, h at specified confidence level (default 95%)
+    '''
     a = 1.0*np.array(data)
     n = len(a)
     mu,se = np.mean(a),stats.sem(a)

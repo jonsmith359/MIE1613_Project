@@ -46,7 +46,6 @@ class EuropeanOption(object):
         '''
         Return European option value using Brownian Random Walk Monte-Carlo simulation
         '''
-        # prices = gbm.BRW(self.mu,self.sigma,self.S0,self.T,self.reps,self.steps)
         self.final_price = self.paths[:,-1]
         self.values=[]
         for val in self.final_price:
@@ -55,5 +54,4 @@ class EuropeanOption(object):
             elif self.contract =='put':
                 self.values.append(np.exp(-self.r*self.T)*np.maximum(0.0,self.K - val))
         value, CI_95 = conf.CI(self.values)
-#         error = np.abs(value-self.BS_value())/self.BS_value()
-        return value, CI_95 #error
+        return value, CI_95

@@ -28,17 +28,13 @@ class AsianOption(object):
         self.mu = float(mu)
         self.sigma = float(sigma)
         self.paths = paths
-        # self.steps = steps
-        # self.reps = reps
-        # self.interval = float(T/steps)
         if (contract != 'call') & (contract != 'put'):
             raise ValueError('Invalid Contract Type. Specify <call> or <put>')
         self.value = self.Sim_value()
     def Sim_value(self):
         '''
-        Return European option value using Brownian Random Walk Monte-Carlo simulation
+        Return Asian option value using Brownian Random Walk Monte-Carlo simulation
         '''
-        # prices = gbm.BRW(self.mu,self.sigma,self.S0,self.T,self.reps,self.steps)
         ave_price = self.paths.mean(axis=1)
         self.final_price = self.paths[:,-1]
         self.values=[]
